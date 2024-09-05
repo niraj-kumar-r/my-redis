@@ -1,6 +1,11 @@
 use mini_redis::{Connection, Frame};
 use my_redis::db::SharedMap;
-use tokio::net::{TcpListener, TcpStream};
+use tokio::{
+    io::AsyncWriteExt,
+    net::{TcpListener, TcpStream},
+};
+
+const MAX_CONNECTIONS: usize = 100;
 
 #[tokio::main]
 async fn main() {
@@ -11,10 +16,21 @@ async fn main() {
     let db = SharedMap::new(10);
 
     loop {
-        let (socket, s_addr) = listener.accept().await.unwrap();
+        let (mut socket, s_addr) = listener.accept().await.unwrap();
         let db = db.clone();
 
+        if db.connection_count() >= MAX_CONNECTIONS {
+            println!(
+                "Maximum connection limit reached. Rejecting connection from {:?}",
+                s_addr
+            );
+            socket.shutdown().await.unwrap();
+            continue;
+        }
+
+        db.connection_made();
         println!("Accepted connection from {:?}", s_addr);
+
         tokio::spawn(async move {
             process(socket, db).await;
         });
@@ -47,4 +63,5 @@ async fn process(socket: TcpStream, db: SharedMap) {
         // Write the response to the client
         connection.write_frame(&response).await.unwrap();
     }
+    db.connection_closed();
 }
