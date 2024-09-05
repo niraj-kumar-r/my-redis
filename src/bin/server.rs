@@ -1,7 +1,5 @@
-mod db;
-
-use db::SharedMap;
 use mini_redis::{Connection, Frame};
+use my_redis::db::SharedMap;
 use tokio::net::{TcpListener, TcpStream};
 
 #[tokio::main]
