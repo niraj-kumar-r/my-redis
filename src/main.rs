@@ -10,7 +10,7 @@ async fn main() {
 
     println!("Listening");
 
-    let db = SharedMap::new();
+    let db = SharedMap::new(10);
 
     loop {
         let (socket, s_addr) = listener.accept().await.unwrap();
